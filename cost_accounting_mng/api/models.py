@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AbstractUser
 
 # Create your models here.
 
@@ -9,7 +9,7 @@ class Balance(models.Model):
     balance = models.DecimalField(max_digits=11, decimal_places=2)
 
     def __str__(self):
-        self.balance
+        return str(self.balance)
 
 
 class Operations(models.Model):
