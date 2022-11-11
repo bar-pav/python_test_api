@@ -1,13 +1,14 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
-from .models import Operations
+from .models import Operations, Balance
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
 
     # user = serializers.StringRelatedField(read_only=True)
     operations_set = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    balance = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
 
     class Meta:
         model = User
@@ -24,3 +25,12 @@ class OperationsSerializer(serializers.ModelSerializer):
 
     # def perform_create(self, serializer):
     #     serializer.save(user=self.request.user)
+
+
+class BalanceSerializer(serializers.ModelSerializer):
+
+    user = serializers.ReadOnlyField(source='user.username')
+
+    class Meta:
+        model = Balance
+        fields = "__all__"

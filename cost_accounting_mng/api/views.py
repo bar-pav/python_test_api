@@ -4,7 +4,7 @@ from django.shortcuts import render
 from rest_framework.generics import (ListCreateAPIView, RetrieveUpdateDestroyAPIView,)
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly, AllowAny
 from django.contrib.auth.models import User
-from .serializers import UserProfileSerializer, OperationsSerializer
+from .serializers import UserProfileSerializer, OperationsSerializer, BalanceSerializer
 from rest_framework.response import Response
 
 from .models import Operations, Balance
@@ -35,6 +35,7 @@ class UserOperationsListCreateView(ListCreateAPIView):
     # queryset = Operations.objects.all()
     serializer_class = OperationsSerializer
     permission_classes = (IsAuthenticated,)
+    balance_serializer = BalanceSerializer
 
     def get_queryset(self):
         # return Operations.objects.filter()
@@ -46,22 +47,42 @@ class UserOperationsListCreateView(ListCreateAPIView):
         res = self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         if res:
-            return Response(serializer.data, headers=headers)
+            serializer.data["balance"] = str(self.request.user.balance)
+            return Response((serializer.data), headers=headers)
         else:
-            return Response({"message": "Insuffitient funds for operation."})
+            return Response({"message": "Insuffitient funds for operation.", "balance": str(self.request.user.balance)})
+
+    # def perform_create(self, serializer):
+    #     amount = Decimal(self.request.data['amount'])
+    #     balance_record = Balance.objects.filter(user=self.request.user).first()
+    #     if not balance_record and amount > 0:
+    #         balance_record = Balance.objects.create(user=self.request.user, balance=amount)
+    #     else:
+    #         if amount < 0 and balance_record.balance < abs(amount):
+    #             return 
+    #         balance_record.balance += amount
+    #         balance_record.save()
+    #     serializer.save(user=self.request.user,
+    #                     amount=self.request.data['amount'],
+    #                     category=self.request.data['category'],
+    #                     organization=self.request.data['organization'])
+    #     return 1
 
     def perform_create(self, serializer):
-        balance = Balance.objects.filter(user=self.request.user).first()
-        if not balance:
-            balance = Balance.objects.create(user=self.request.user, balance=Decimal(self.request.data['amount']))
+        amount = Decimal(self.request.data['amount'])
+        balance_record = Balance.objects.filter(user=self.request.user).first()
+        if not balance_record and amount > 0:
+            balance_record = self.balance_serializer.save(user=self.request.user, balance=amount)
         else:
-            if Decimal(self.request.data['amount']) < 0 and balance.balance < abs(Decimal(self.request.data['amount'])):
+            if amount < 0 and balance_record.balance < abs(amount):
                 return 
-            balance.balance += Decimal(self.request.data['amount'])
-            balance.save()
-        serializer.save(user=self.request.user,
+            balance_record.balance += amount
+            balance_record.save()
+        return serializer.save(user=self.request.user,
                         amount=self.request.data['amount'],
+                        rest_balance=balance_record.balance,
                         category=self.request.data['category'],
                         organization=self.request.data['organization'])
-        return 1
+        # print(self.request.data['amount'])
+        # return serializer.save(data=self.request.data)
 
