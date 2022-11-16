@@ -8,7 +8,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     # user = serializers.StringRelatedField(read_only=True)
     operations_set = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    balance = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
+    balance = serializers.PrimaryKeyRelatedField(source="balance.balance", many=False, read_only=True)
 
     class Meta:
         model = User

@@ -17,15 +17,16 @@ from .models import Operations, Balance
 class UserProfileListCreateView(ListCreateAPIView):
     # queryset = User.objects.all()
     serializer_class = UserProfileSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (AllowAny,)
 
     def get_queryset(self):
         print('User:', self.request.user.id)
         return User.objects.all()
 
-    # def perform_create(self, serializer):
-    #     user = self.request.user
-    #     serializer.save(user=user)
+    def perform_create(self, serializer):
+        user = serializer.save()
+        balance = Balance(user=user, balance=0)
+        balance.save()
 
 #
 # class UserProfileDetailView(RetrieveUpdateDestroyAPIView):
@@ -51,14 +52,12 @@ class UserOperationsListCreateView(APIView):
         operation = OperationsSerializer(data=request.data)
         if operation.is_valid():
             balance_record = Balance.objects.filter(user=self.request.user).first()
-            if not balance_record and amount > 0:
-                balance_record = self.balance_serializer.save(user=self.request.user, balance=amount)
-            else:
-                if amount < 0 and balance_record.balance < abs(amount):
-                    return Response({"message": "Insuffitient funds for operation.", "balance": str(self.request.user.balance)})
-                balance_record.balance += amount
-                balance_record.save()
-                operation.save(user=self.request.user,
-                            rest_balance=balance_record.balance)
-                return Response(operation.data)
+            if amount < 0 and balance_record.balance < abs(amount):
+                return Response({"message": "Insuffitient funds for operation.", "balance": str(self.request.user.balance)},
+                status=status.HTTP_400_BAD_REQUEST)
+            balance_record.balance += amount
+            balance_record.save()
+            operation.save(user=self.request.user,
+                        rest_balance=balance_record.balance)
+            return Response(operation.data, status=status.HTTP_201_CREATED)
         return Response(operation.errors, status=status.HTTP_400_BAD_REQUEST)
