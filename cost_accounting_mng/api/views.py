@@ -6,12 +6,60 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly, AllowAny
 from django.contrib.auth.models import User
-from .serializers import UserProfileSerializer, OperationsSerializer, BalanceSerializer
+from .serializers import (UserProfileSerializer,
+                          OperationsSerializer,
+                          BalanceSerializer,
+                          BalanceModelSerializer,
+                          UserSerializer,
+                          )
 from rest_framework.response import Response
 
 from .models import Operations, Balance
 
 # Create your views here.
+
+
+class UserListView(APIView):
+    def get(self, request):
+        users = User.objects.all()
+        users_serial = UserSerializer(users, many=True)
+        return Response(users_serial.data)
+
+
+class UserDetailView(APIView):
+    def get(self, request, user_id=None):
+        print("------------------->", user_id)
+        if user_id:
+            user = User.objects.filter(id=user_id).first()
+            if user:
+                user_serial = UserSerializer(user)
+                return Response(user_serial.data)
+            return Response(f"No such user with id={user_id}")
+
+
+class BalanceListView(APIView):
+    def get(self, request):
+        balances = Balance.objects.all()
+        balances_serial = BalanceModelSerializer(balances, many=True)
+        return Response(balances_serial.data)
+
+
+class BalanceView(APIView):
+    def get(self, request, user_id=None):
+        print("------------------->", user_id)
+        if user_id:
+            # balance = Balance.objects.filter(user__id=user_id).first()
+            user = User.objects.filter(id=user_id).first()
+            print(user.balance)
+            if user:
+                balance = user.balance
+            else:
+                balance = None
+            print(balance)
+            if balance:
+                balance_serial = BalanceSerializer(balance)
+                return Response(balance_serial.data)
+            return Response(f"No such user with id={user_id}")
 
 
 class UserProfileListCreateView(ListCreateAPIView):

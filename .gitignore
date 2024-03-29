@@ -1,1 +1,4 @@
 .idea/
+cost_accounting_mng/api/migrations
+cost_accounting_mng/cost_accounting_mng/__pycache__
+cost_accounting_mng/api/__pycache__

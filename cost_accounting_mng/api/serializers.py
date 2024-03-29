@@ -4,6 +4,23 @@ from django.contrib.auth.models import User
 from .models import Operations, Balance
 
 
+class UserSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    username = serializers.CharField()
+
+
+class BalanceSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    user = UserSerializer()
+    balance = serializers.FloatField()
+
+
+class BalanceModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Balance
+        fields = "__all__"
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
 
     # user = serializers.StringRelatedField(read_only=True)
@@ -27,10 +44,10 @@ class OperationsSerializer(serializers.ModelSerializer):
     #     serializer.save(user=self.request.user)
 
 
-class BalanceSerializer(serializers.ModelSerializer):
-
-    user = serializers.ReadOnlyField(source='user.username')
-
-    class Meta:
-        model = Balance
-        fields = "__all__"
+# class BalanceSerializer(serializers.ModelSerializer):
+#
+#     user = serializers.ReadOnlyField(source='user.username')
+#
+#     class Meta:
+#         model = Balance
+#         fields = "__all__"
