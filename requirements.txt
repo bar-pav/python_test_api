@@ -1,4 +1,4 @@
 django
 djangorestframework
-djoser
-djangorestframework_simplejwt
+# djoser
+# djangorestframework_simplejwt

@@ -31,7 +31,7 @@ class Balance(models.Model):
     categories = models.TextField(blank=False, null=False, default=default_categories_json)
 
     def __str__(self):
-        return str(self.balance)
+        return f"{self.user}, ({self.balance})"
 
 
 class Operations(models.Model):
