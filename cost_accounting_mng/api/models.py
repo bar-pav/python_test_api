@@ -28,10 +28,25 @@ def default_categories_json():
 class Balance(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='balance')
     balance = models.DecimalField(max_digits=11, decimal_places=2)
-    categories = models.TextField(blank=False, null=False, default=default_categories_json)
+    # categories = models.TextField(blank=False, null=False, default=default_categories_json)
+    # categories = models.JSONField()
 
     def __str__(self):
         return str(self.balance)
+
+
+class Category(models.Model):
+    inf_choices = [
+        ('D', 'Default'),
+        ('U', 'User'),]
+
+    title = models.CharField(max_length=150, null=False)
+    inf = models.CharField(max_length=1, choices=inf_choices, default='U')
+    users = models.ManyToManyField(User, related_name='category')
+
+    def __str__(self):
+        return f'{self.title}: {self.inf}'
+
 
 
 class Operations(models.Model):
@@ -39,7 +54,7 @@ class Operations(models.Model):
     amount = models.DecimalField(max_digits=11, decimal_places=2)
     rest_balance = models.DecimalField(max_digits=11, decimal_places=2, default=0)
     date = models.DateTimeField(auto_now_add=True)
-    category = models.CharField(max_length=50, blank=False)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
     organization = models.CharField(max_length=40, blank=False)
     description = models.TextField(blank=True, null=True)
 
