@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
-from .models import Operations, Balance
+from .models import Operations, Account, Category
 
 
 class UserSerializer(serializers.Serializer):
@@ -13,28 +13,45 @@ class UserSerializer(serializers.Serializer):
     #     model = User
     #     fields = ("id", "username", "email")
 
-class UserBalanceSerializer(serializers.ModelSerializer):
+class UserAccountSerializer(serializers.ModelSerializer):
 
     user = serializers.StringRelatedField(source="user.username", read_only=True)
     # user = UserSerializer()
     # user = serializers.CharField()
 
     class Meta:
-        model = Balance
+        model = Account
         # fields = "__all__"
-        fields = ("id", "user")
+        fields = ("id", "user", "balance")
 
 
-class BalanceSerializer(serializers.Serializer):
+class AccountSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     user = UserSerializer()
     balance = serializers.FloatField()
 
 
-class BalanceModelSerializer(serializers.ModelSerializer):
+class AccountModelSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Balance
+        model = Account
         fields = "__all__"
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = "__all__"
+        read_only_fields = ["users"]
+
+    def create(self, validated_data):
+        existed = Category.objects.filter(title__iexact=validated_data.get("title")).first()
+        if existed:
+            existed.users.add(validated_data.get("user"))
+            return existed
+        else:
+            category = Category.objects.create(title=validated_data.get("title"))
+            category.users.add(validated_data.get("user"))
+            return category
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -42,7 +59,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     # user = serializers.StringRelatedField(read_only=True)
     operations_set = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     # balance = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
-    balance = UserBalanceSerializer(many=False, read_only=True)
+    balance = UserAccountSerializer(many=False, read_only=True)
     # balance = serializers.PrimaryKeyRelatedField(source="balance.balance", many=False, read_only=True)
 
     class Meta:
@@ -67,5 +84,5 @@ class OperationsSerializer(serializers.ModelSerializer):
 #     user = serializers.ReadOnlyField(source='user.username')
 #
 #     class Meta:
-#         model = Balance
+#         model = Account
 #         fields = "__all__"

@@ -1,4 +1,4 @@
-from .models import Balance, Operations, User, Category
+from .models import Account, Operations, User, Category
 
 
 default_categories = [
@@ -26,18 +26,18 @@ def add_test_records():
 
     for category in default_categories:
         if not Category.objects.filter(title=category).first():
-            Category.objects.create(title=category)
+            Category.objects.create(title=category.lower())
 
     for category in Category.objects.filter(inf='D').all():
         usertest.category.add(category)
     usertest.save()
 
-    if not Balance.objects.filter(user=usertest):
+    if not Account.objects.filter(user=usertest):
         print("NO BALANCE YET")
-        Balance.objects.create(user=usertest, balance=0, categories={"categories": []})
+        Account.objects.create(user=usertest, balance=0, categories={"categories": []})
 
 
-    if Balance.objects.filter(user=usertest):
+    if Account.objects.filter(user=usertest):
         print("User's balance exists.")
 
 

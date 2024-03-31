@@ -25,11 +25,9 @@ def default_categories_json():
     return json.dumps(default_categories)
 
 
-class Balance(models.Model):
+class Account(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='balance')
     balance = models.DecimalField(max_digits=11, decimal_places=2)
-    # categories = models.TextField(blank=False, null=False, default=default_categories_json)
-    # categories = models.JSONField()
 
     def __str__(self):
         return f"{self.user}, ({self.balance})"
@@ -40,9 +38,9 @@ class Category(models.Model):
         ('D', 'Default'),
         ('U', 'User'),]
 
-    title = models.CharField(max_length=150, null=False)
+    title = models.CharField(max_length=150, unique=True, null=False)
     inf = models.CharField(max_length=1, choices=inf_choices, default='U')
-    users = models.ManyToManyField(User, related_name='category')
+    users = models.ManyToManyField(User, related_name='categories')
 
     def __str__(self):
         return f'{self.title}: {self.inf}'

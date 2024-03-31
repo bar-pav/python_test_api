@@ -8,16 +8,31 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthentic
 from django.contrib.auth.models import User
 from .serializers import (UserProfileSerializer,
                           OperationsSerializer,
-                          BalanceSerializer,
-                          UserBalanceSerializer,
-                          BalanceModelSerializer,
+                          AccountSerializer,
+                          UserAccountSerializer,
+                          AccountModelSerializer,
                           UserSerializer,
+                          CategorySerializer,
                           )
 from rest_framework.response import Response
 
-from .models import Operations, Balance
+from .models import Operations, Account, Category
 
 # Create your views here.
+
+
+class CategoryList(APIView):
+    def get(self, request):
+        categories_serial = CategorySerializer(Category.objects.all(), many=True)
+        return Response(categories_serial.data)
+
+
+class CreateCategory(APIView):
+    def post(self, request):
+        category_serial = CategorySerializer(data=request.data)
+        if category_serial.is_valid():
+            category_serial.save(user=3)
+        return Response(category_serial.data)
 
 
 class ListUsers(APIView):
@@ -29,21 +44,21 @@ class ListUsers(APIView):
     def get_object(self): pass
 
 
-class ListUserBalance(APIView):
+class ListUserAccount(APIView):
     def get(self, request):
-        user_balance = Balance.objects.all()
-        user_balance_serial = UserBalanceSerializer(instance=user_balance, many=True)
+        user_balance = Account.objects.all()
+        user_balance_serial = UserAccountSerializer(instance=user_balance, many=True)
         return Response(user_balance_serial.data)
 
     def post(self, request):
-        balance = UserBalanceSerializer(data=request.data)
+        balance = UserAccountSerializer(data=request.data)
         balance.is_valid()
         print(balance.data)
-        # b = Balance.objects.filter(user=request.data['user']).first()
+        # b = Account.objects.filter(user=request.data['user']).first()
         # balance.update(b, {'user': User.objects.get(id=request.data['user']), 'balance': request.data['balance']})
 
         # if balance.is_valid():
-        #     b = Balance.objects.filter(user=request.data['user']).first()
+        #     b = Account.objects.filter(user=request.data['user']).first()
         #     balance.update(b, balance.data)
         # else:
         #     print(balance.errors)
@@ -68,18 +83,18 @@ class UserDetailView(APIView):
             return Response(f"No such user with id={user_id}")
 
 
-class BalanceListView(APIView):
+class AccountListView(APIView):
     def get(self, request):
-        balances = Balance.objects.all()
-        balances_serial = BalanceModelSerializer(balances, many=True)
+        balances = Account.objects.all()
+        balances_serial = AccountModelSerializer(balances, many=True)
         return Response(balances_serial.data)
 
 
-class BalanceView(APIView):
+class AccountView(APIView):
     def get(self, request, user_id=None):
         print("------------------->", user_id)
         if user_id:
-            # balance = Balance.objects.filter(user__id=user_id).first()
+            # balance = Account.objects.filter(user__id=user_id).first()
             user = User.objects.filter(id=user_id).first()
             print(user.balance)
             if user:
@@ -88,7 +103,7 @@ class BalanceView(APIView):
                 balance = None
             print(balance)
             if balance:
-                balance_serial = BalanceSerializer(balance)
+                balance_serial = AccountSerializer(balance)
                 return Response(balance_serial.data)
             return Response(f"No such user with id={user_id}")
 
@@ -104,7 +119,7 @@ class UserProfileListCreateView(ListCreateAPIView):
 
     def perform_create(self, serializer):
         user = serializer.save()
-        balance = Balance(user=user, balance=0)
+        balance = Account(user=user, balance=0)
         balance.save()
 
 #
@@ -116,8 +131,8 @@ class UserProfileListCreateView(ListCreateAPIView):
 class UserOperationsListCreateView(APIView):
     # queryset = Operations.objects.all()
     serializer_class = OperationsSerializer
-    permission_classes = (IsAuthenticated,)
-    balance_serializer = UserBalanceSerializer
+    # permission_classes = (IsAuthenticated,)
+    balance_serializer = UserAccountSerializer
 
     def get_queryset(self):
         return Operations.objects.filter(user=self.request.user)
@@ -135,9 +150,9 @@ class UserOperationsListCreateView(APIView):
 
     # def perform_create(self, serializer):
     #     amount = Decimal(self.request.data['amount'])
-    #     balance_record = Balance.objects.filter(user=self.request.user).first()
+    #     balance_record = Account.objects.filter(user=self.request.user).first()
     #     if not balance_record and amount > 0:
-    #         balance_record = Balance.objects.create(user=self.request.user, balance=amount)
+    #         balance_record = Account.objects.create(user=self.request.user, balance=amount)
     #     else:
     #         if amount < 0 and balance_record.balance < abs(amount):
     #             return
@@ -151,7 +166,7 @@ class UserOperationsListCreateView(APIView):
 
     def perform_create(self, serializer):
         amount = Decimal(self.request.data['amount'])
-        balance_record = Balance.objects.filter(user=self.request.user).first()
+        balance_record = Account.objects.filter(user=self.request.user).first()
         if not balance_record and amount > 0:
             balance_record = self.balance_serializer.save(user=self.request.user, balance=amount)
         else:
@@ -178,7 +193,7 @@ class UserOperationsList(APIView):
 
     def post(self, request):
         amount = Decimal(self.request.data['amount'])
-        balance_record = Balance.objects.filter(user=self.request.user).first()
+        balance_record = Account.objects.filter(user=self.request.user).first()
         if not balance_record and amount > 0:
             serializer = OperationsSerializer(user=self.request.user, amount=self.request.data['amount'],
                                                   rest_balance=balance_record.balance,
@@ -220,9 +235,9 @@ class UserOperationsList(APIView):
     #
     # # def perform_create(self, serializer):
     # #     amount = Decimal(self.request.data['amount'])
-    # #     balance_record = Balance.objects.filter(user=self.request.user).first()
+    # #     balance_record = Account.objects.filter(user=self.request.user).first()
     # #     if not balance_record and amount > 0:
-    # #         balance_record = Balance.objects.create(user=self.request.user, balance=amount)
+    # #         balance_record = Account.objects.create(user=self.request.user, balance=amount)
     # #     else:
     # #         if amount < 0 and balance_record.balance < abs(amount):
     # #             return
@@ -236,7 +251,7 @@ class UserOperationsList(APIView):
     #
     # def perform_create(self, serializer):
     #     amount = Decimal(self.request.data['amount'])
-    #     balance_record = Balance.objects.filter(user=self.request.user).first()
+    #     balance_record = Account.objects.filter(user=self.request.user).first()
     #     if not balance_record and amount > 0:
     #         balance_record = self.balance_serializer.save(user=self.request.user, balance=amount)
     #     else:
@@ -249,23 +264,3 @@ class UserOperationsList(APIView):
     #                            rest_balance=balance_record.balance,
     #                            category=self.request.data['category'],
     #                            organization=self.request.data['organization'])
-
-
-    def get(self, request):
-        operations = OperationsSerializer(Operations.objects.all(), many=True)
-        return Response(operations.data)
-
-    def post(self, request):
-        amount = Decimal(request.data['amount'])
-        operation = OperationsSerializer(data=request.data)
-        if operation.is_valid():
-            balance_record = Balance.objects.filter(user=self.request.user).first()
-            if amount < 0 and balance_record.balance < abs(amount):
-                return Response({"message": "Insuffitient funds for operation.", "balance": str(self.request.user.balance)},
-                status=status.HTTP_400_BAD_REQUEST)
-            balance_record.balance += amount
-            balance_record.save()
-            operation.save(user=self.request.user,
-                        rest_balance=balance_record.balance)
-            return Response(operation.data, status=status.HTTP_201_CREATED)
-        return Response(operation.errors, status=status.HTTP_400_BAD_REQUEST)

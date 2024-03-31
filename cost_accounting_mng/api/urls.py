@@ -8,18 +8,25 @@ from .views import (UserProfileListCreateView,
                     UserOperationsList,
                     UserListView,
                     UserDetailView,
-                    BalanceListView,
-                    BalanceView)
+                    AccountListView,
+                    AccountView,
+                    CreateCategory,
+                    CategoryList,
+                    )
 
 
 urlpatterns = [
     path("users", UserListView.as_view(), name='users'),
     path("user/<user_id>", UserDetailView.as_view(), name='user'),
-    path("balances", BalanceListView.as_view(), name='balances'),
-    path("balance/<user_id>", BalanceView.as_view(), name='balance'),
+    path("accounts", AccountListView.as_view(), name='accounts'),
+    path("account/<user_id>", AccountView.as_view(), name='account'),
     path("all-profiles", UserProfileListCreateView.as_view(), name='all-profiles'),
     path('all-operations', UserOperationsListCreateView.as_view(), name='all-operations'),
     path('operations', UserOperationsList.as_view(), name='all-operations'),
+
+    path('categories', CategoryList.as_view(), name='categories'),
+    path('create-category', CreateCategory.as_view(), name='create-category'),
+
 
     # path("profile/<int:pk>", UserProfileDetailView.as_view(), name='profile'),
 ]
