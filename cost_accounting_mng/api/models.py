@@ -1,9 +1,6 @@
 import json
-
 from django.db import models
-from django.contrib.auth.models import User, AbstractUser
-
-# Create your models here.
+from django.contrib.auth.models import User
 
 
 default_categories = [
@@ -27,19 +24,19 @@ def default_categories_json():
 
 class Account(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='balance')
-    balance = models.DecimalField(max_digits=11, decimal_places=2)
+    balance = models.DecimalField(max_digits=11, decimal_places=2, default=0)
 
     def __str__(self):
         return f"{self.user}, ({self.balance})"
 
 
 class Category(models.Model):
-    inf_choices = [
+    creator_choices = [
         ('D', 'Default'),
         ('U', 'User'),]
 
     title = models.CharField(max_length=150, unique=True, null=False)
-    inf = models.CharField(max_length=1, choices=inf_choices, default='U')
+    inf = models.CharField(max_length=1, choices=creator_choices, default='U')
     users = models.ManyToManyField(User, related_name='categories')
 
     def __str__(self):
@@ -55,6 +52,9 @@ class Operations(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     organization = models.CharField(max_length=40, blank=False)
     description = models.TextField(blank=True, null=True)
+    #
+    # class Meta:
+    #     get_latest_by = ["date"]
 
     def __str__(self):
         return f'{self.user}: {self.amount:+}'

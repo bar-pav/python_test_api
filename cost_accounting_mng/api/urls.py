@@ -1,32 +1,15 @@
-from django.urls import include, path
+from django.urls import include, path, re_path
+from rest_framework.authtoken import views as auth_views
 from rest_framework.routers import DefaultRouter
-
-
-# from .views import UserProfileDetailView
-from .views import (UserProfileListCreateView,
-                    UserOperationsListCreateView,
-                    UserOperationsList,
-                    UserListView,
-                    UserDetailView,
-                    AccountListView,
-                    AccountView,
-                    CreateCategory,
-                    CategoryList,
-                    )
+from . import views
 
 
 urlpatterns = [
-    path("users", UserListView.as_view(), name='users'),
-    path("user/<user_id>", UserDetailView.as_view(), name='user'),
-    path("accounts", AccountListView.as_view(), name='accounts'),
-    path("account/<user_id>", AccountView.as_view(), name='account'),
-    path("all-profiles", UserProfileListCreateView.as_view(), name='all-profiles'),
-    path('all-operations', UserOperationsListCreateView.as_view(), name='all-operations'),
-    path('operations', UserOperationsList.as_view(), name='all-operations'),
-
-    path('categories', CategoryList.as_view(), name='categories'),
-    path('create-category', CreateCategory.as_view(), name='create-category'),
-
-
-    # path("profile/<int:pk>", UserProfileDetailView.as_view(), name='profile'),
+    path("register", views.UserView.as_view(), name='create_user'),
+    path("user", views.UserView.as_view(), name='user'),
+    path("obtain-token", auth_views.obtain_auth_token),
+    path("account", views.AccountView.as_view(), name='account'),
+    path('operations', views.OperationView.as_view(), name='operations'),
+    path('all-operations', views.UserOperationsListCreateView.as_view(), name='all-operations'),
+    path('categories', views.CategoryView.as_view(), name='categories'),
 ]

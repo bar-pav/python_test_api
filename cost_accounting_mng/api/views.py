@@ -5,20 +5,82 @@ from rest_framework.generics import (ListCreateAPIView, RetrieveUpdateDestroyAPI
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly, AllowAny
-from django.contrib.auth.models import User
-from .serializers import (UserProfileSerializer,
-                          OperationsSerializer,
+from rest_framework.authtoken.models import Token
+from rest_framework.authentication import TokenAuthentication
+from .serializers import (
+                          OperationSerializer,
                           AccountSerializer,
-                          UserAccountSerializer,
-                          AccountModelSerializer,
                           UserSerializer,
                           CategorySerializer,
                           )
 from rest_framework.response import Response
-
 from .models import Operations, Account, Category
 
-# Create your views here.
+
+class UserView(APIView):
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request):
+        if request.user.is_authenticated:
+            serializer = UserSerializer(request.user)
+            return Response(serializer.data)
+        return Response('Not authenticated. Set Token in headers first.')
+
+    def post(self, request):
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            Account.objects.create(user=user)
+            token = Token.objects.create(user=user)
+            return Response({"Token": token.key})
+        else:
+            return Response(serializer.errors)
+
+
+class AccountView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        serializer = AccountSerializer(request.user.balance)
+        return Response(serializer.data)
+
+
+class OperationView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, operation_id=None):
+        if operation_id:
+            if operation_id in request.user.operation:
+                return Response(str(Operations.objects.get(id=operation_id)))
+            else:
+                return Response(f"You have no operation {operation_id}.")
+        count = request.query_params.get('count')
+        if count and count.isdigit():
+            count = int(count)
+        else:
+            count = 10
+        serializer = OperationSerializer(request.user.operations.all().reverse()[:count], many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        user = request.user
+        category = Category.objects.filter(title=request.data.get('category')).first()
+        if category and category in user.categories.all():
+            operation_serializer = OperationSerializer(data=request.data)
+            if operation_serializer.is_valid():
+                balance_serializer = AccountSerializer(user.balance,
+                                                       data={"balance": operation_serializer.validated_data.get("amount")},
+                                                       partial=True)
+                if balance_serializer.is_valid():
+                    balance_serializer.save()
+                else:
+                    return Response(balance_serializer.errors)
+                operation_serializer.save(user=user, category=category, rest_balance=balance_serializer.data.get("balance"))
+                return Response(operation_serializer.data)
+            else:
+                return Response(operation_serializer.errors)
+        return Response(f"You have no category \'{request.data.get('category')}\'")
 
 
 class CategoryList(APIView):
@@ -27,112 +89,50 @@ class CategoryList(APIView):
         return Response(categories_serial.data)
 
 
-class CreateCategory(APIView):
-    def post(self, request):
-        category_serial = CategorySerializer(data=request.data)
-        if category_serial.is_valid():
-            category_serial.save(user=3)
-        return Response(category_serial.data)
+class CategoryView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
-
-class ListUsers(APIView):
-    def get(self, request, format=None):
-        users = User.objects.all()
-        users_serial = UserSerializer(instance=users, many=True)
-        return Response(users_serial.data)
-
-    def get_object(self): pass
-
-
-class ListUserAccount(APIView):
     def get(self, request):
-        user_balance = Account.objects.all()
-        user_balance_serial = UserAccountSerializer(instance=user_balance, many=True)
-        return Response(user_balance_serial.data)
+        user = request.user
+        serializer = CategorySerializer(user.categories.all(), many=True)
+        return Response(serializer.data)
 
     def post(self, request):
-        balance = UserAccountSerializer(data=request.data)
-        balance.is_valid()
-        print(balance.data)
-        # b = Account.objects.filter(user=request.data['user']).first()
-        # balance.update(b, {'user': User.objects.get(id=request.data['user']), 'balance': request.data['balance']})
-
-        # if balance.is_valid():
-        #     b = Account.objects.filter(user=request.data['user']).first()
-        #     balance.update(b, balance.data)
-        # else:
-        #     print(balance.errors)
-        return Response(balance.data)
+        user = request.user
+        serializer = CategorySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=user)
+        return Response(serializer.data)
 
 
-class UserListView(APIView):
-    def get(self, request):
-        users = User.objects.all()
-        users_serial = UserSerializer(users, many=True)
-        return Response(users_serial.data)
+# class AccountListView(APIView):
+#     def get(self, request):
+#         balances = Account.objects.all()
+#         balances_serial = AccountModelSerializer(balances, many=True)
+#         return Response(balances_serial.data)
 
 
-class UserDetailView(APIView):
-    def get(self, request, user_id=None):
-        print("------------------->", user_id)
-        if user_id:
-            user = User.objects.filter(id=user_id).first()
-            if user:
-                user_serial = UserSerializer(user)
-                return Response(user_serial.data)
-            return Response(f"No such user with id={user_id}")
-
-
-class AccountListView(APIView):
-    def get(self, request):
-        balances = Account.objects.all()
-        balances_serial = AccountModelSerializer(balances, many=True)
-        return Response(balances_serial.data)
-
-
-class AccountView(APIView):
-    def get(self, request, user_id=None):
-        print("------------------->", user_id)
-        if user_id:
-            # balance = Account.objects.filter(user__id=user_id).first()
-            user = User.objects.filter(id=user_id).first()
-            print(user.balance)
-            if user:
-                balance = user.balance
-            else:
-                balance = None
-            print(balance)
-            if balance:
-                balance_serial = AccountSerializer(balance)
-                return Response(balance_serial.data)
-            return Response(f"No such user with id={user_id}")
-
-
-class UserProfileListCreateView(ListCreateAPIView):
-    # queryset = User.objects.all()
-    serializer_class = UserProfileSerializer
-    permission_classes = (AllowAny,)
-
-    def get_queryset(self):
-        print('User:', self.request.user.id)
-        return User.objects.all()
-
-    def perform_create(self, serializer):
-        user = serializer.save()
-        balance = Account(user=user, balance=0)
-        balance.save()
-
-#
-# class UserProfileDetailView(RetrieveUpdateDestroyAPIView):
-#     queryset = User.objects.all()
+# class UserProfileListCreateView(ListCreateAPIView):
+#     # queryset = User.objects.all()
 #     serializer_class = UserProfileSerializer
+#     permission_classes = (AllowAny,)
+#
+#     def get_queryset(self):
+#         print('User:', self.request.user.id)
+#         return User.objects.all()
+#
+#     def perform_create(self, serializer):
+#         user = serializer.save()
+#         balance = Account(user=user, balance=0)
+#         balance.save()
 
 
 class UserOperationsListCreateView(APIView):
     # queryset = Operations.objects.all()
-    serializer_class = OperationsSerializer
+    serializer_class = OperationSerializer
     # permission_classes = (IsAuthenticated,)
-    balance_serializer = UserAccountSerializer
+    balance_serializer = OperationSerializer
 
     def get_queryset(self):
         return Operations.objects.filter(user=self.request.user)
@@ -147,22 +147,6 @@ class UserOperationsListCreateView(APIView):
             return Response(serializer.data, headers=headers)
         else:
             return Response({"message": "Insuffitient funds for operation.", "balance": str(self.request.user.balance)})
-
-    # def perform_create(self, serializer):
-    #     amount = Decimal(self.request.data['amount'])
-    #     balance_record = Account.objects.filter(user=self.request.user).first()
-    #     if not balance_record and amount > 0:
-    #         balance_record = Account.objects.create(user=self.request.user, balance=amount)
-    #     else:
-    #         if amount < 0 and balance_record.balance < abs(amount):
-    #             return
-    #         balance_record.balance += amount
-    #         balance_record.save()
-    #     serializer.save(user=self.request.user,
-    #                     amount=self.request.data['amount'],
-    #                     category=self.request.data['category'],
-    #                     organization=self.request.data['organization'])
-    #     return 1
 
     def perform_create(self, serializer):
         amount = Decimal(self.request.data['amount'])
@@ -188,14 +172,14 @@ class UserOperationsList(APIView):
 
     def get(self, request):
         operations = Operations.objects.all()
-        serializer = OperationsSerializer(operations, many=True)
+        serializer = OperationSerializer(operations, many=True)
         return Response(serializer.data)
 
     def post(self, request):
         amount = Decimal(self.request.data['amount'])
         balance_record = Account.objects.filter(user=self.request.user).first()
         if not balance_record and amount > 0:
-            serializer = OperationsSerializer(user=self.request.user, amount=self.request.data['amount'],
+            serializer = OperationSerializer(user=self.request.user, amount=self.request.data['amount'],
                                                   rest_balance=balance_record.balance,
                                                   category=self.request.data['category'],
                                                   organization=self.request.data['organization'])
@@ -209,7 +193,7 @@ class UserOperationsList(APIView):
                                  "balance": str(self.request.user.balance)})
             balance_record.balance += amount
             balance_record.save()
-            serializer = OperationsSerializer(user=self.request.user,
+            serializer = OperationSerializer(user=self.request.user,
                                                   amount=self.request.data['amount'],
                                                   rest_balance=balance_record.balance,
                                                   category=self.request.data['category'],
