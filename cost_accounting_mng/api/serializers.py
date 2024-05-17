@@ -36,7 +36,6 @@ class AccountSerializer(serializers.Serializer):
     balance = serializers.FloatField()
 
     def update(self, instance, validated_data):
-        print(validated_data)
         instance.balance += Decimal(validated_data.get("balance"))
         instance.save()
         return instance
@@ -60,9 +59,18 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class OperationSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(slug_field='title', read_only=True)
+
     class Meta:
         model = Operations
-        fields = '__all__'
+        fields = "__all__"
         extra_kwargs = {"user": {"read_only": True},
-                        "category": {"read_only": True},
                         "rest_balance": {"read_only": True}}
+
+    def update(self, instance, validated_data):
+        organization = validated_data.get("organization")
+        if organization:
+            instance.organization = organization
+        instance.description = validated_data.pop("description")
+        instance.save()
+        return instance
