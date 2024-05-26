@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-n38@dpvejjq0l^gw&j_b60x+$7x0yusvko2inzp2g)wl-!)ll8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -38,12 +38,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    'api.apps.ApiConfig',
     'rest_framework',
     'rest_framework.authtoken',
-
+    'corsheaders',
     # 'djoser',
     # 'rest_framework_simplejwt',
+    
+    'api.apps.ApiConfig',
+
 ]
 
 MIDDLEWARE = [
@@ -54,6 +56,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'cost_accounting_mng.urls'
@@ -145,3 +148,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #         # 'rest_framework_simplejwt.authentication.JWTAuthentication',
 #     ),
 # }
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWS_ALL_CREDENTIALS = True
