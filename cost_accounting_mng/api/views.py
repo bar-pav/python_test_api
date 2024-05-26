@@ -16,7 +16,7 @@ from .serializers import (
                           CategorySerializer,
                           )
 from rest_framework.response import Response
-from .models import Operations, Account, Category
+from .models import Operations, Account, Category, User
 
 from .utils import filter_queryset
 
@@ -150,3 +150,14 @@ class OperationView(APIView):
         if category in self.request.user.categories.all():
             return category
         return None
+
+
+from rest_framework.decorators import renderer_classes, api_view
+from rest_framework.renderers import JSONRenderer
+
+
+@api_view(['GET'])
+@renderer_classes([JSONRenderer])
+def serializers_test(request):
+    serializer = UserSerializer(User.objects.all().first())
+    return Response(serializer.data)

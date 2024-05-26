@@ -3,11 +3,14 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Operations, Account, Category
 
+from rest_framework.reverse import reverse
 
 class UserSerializer(serializers.ModelSerializer):
+    method = serializers.SerializerMethodField(method_name="get_computing_method")
+
     class Meta:
         model = User
-        fields = ("id", "username", "password", "email")
+        fields = ("id", "username", "password", "email", "method")
         read_only_fields = ['id', 'operations']
         extra_kwargs = {'password': {'write_only': True}}
 
@@ -22,6 +25,8 @@ class UserSerializer(serializers.ModelSerializer):
         user.categories.add(*default_categories)
         return user
 
+    def get_computing_method(self, object):
+        return reverse("user") + "_" + str(object.id)
 
 class UserAccountSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(source="user.username", read_only=True)
