@@ -13,6 +13,8 @@ urlpatterns = [
     path('operations/<int:operation_id>', views.OperationView.as_view(), name='operation_detail'),
     path('operations/update/<int:operation_id>', views.OperationView.as_view(), name='operation_update'),
     path('operations/delete/<int:operation_id>', views.OperationView.as_view(), name='operation_delete'),
-    path('all-operations', views.UserOperationsListCreateView.as_view(), name='all-operations'),
     path('categories', views.CategoryView.as_view(), name='categories'),
+
+    path('test', views.serializers_test, name='test'),
+
 ]
