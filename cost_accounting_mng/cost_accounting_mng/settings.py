@@ -40,8 +40,9 @@ INSTALLED_APPS = [
     
     'api.apps.ApiConfig',
     'rest_framework',
+
+    'rest_framework.authtoken',
     # 'djoser',
-    # 'rest_framework.authtoken',
     # 'rest_framework_simplejwt',
 ]
 

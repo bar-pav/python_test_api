@@ -4,6 +4,8 @@ from django.shortcuts import render
 from rest_framework.generics import (ListCreateAPIView, RetrieveUpdateDestroyAPIView,GenericAPIView)
 from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly, AllowAny
 from django.contrib.auth.models import User
 from .serializers import (UserProfileSerializer,
@@ -66,7 +68,13 @@ class ListUserAccount(APIView):
 
 
 class UserListView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
+        print(request.user)
+        print(request.auth)
+        print(request.headers)
         users = User.objects.all()
         users_serial = UserSerializer(users, many=True)
         return Response(users_serial.data)
