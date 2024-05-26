@@ -1,46 +1,50 @@
+from decimal import Decimal
 from rest_framework import serializers
 from django.contrib.auth.models import User
-
 from .models import Operations, Account, Category
 
 
-class UserSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    username = serializers.CharField()
-    email = serializers.CharField()
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ("id", "username", "password", "email")
+        read_only_fields = ['id', 'operations']
+        extra_kwargs = {'password': {'write_only': True}}
 
-    # class Meta:
-    #     model = User
-    #     fields = ("id", "username", "email")
+    def create(self, validated_data):
+        user = User(
+            email=validated_data['email'],
+            username=validated_data['username']
+        )
+        user.set_password(validated_data['password'])
+        user.save()
+        default_categories = Category.objects.filter(inf="D").all()
+        user.categories.add(*default_categories)
+        return user
+
 
 class UserAccountSerializer(serializers.ModelSerializer):
-
     user = serializers.StringRelatedField(source="user.username", read_only=True)
-    # user = UserSerializer()
-    # user = serializers.CharField()
 
     class Meta:
         model = Account
-        # fields = "__all__"
         fields = ("id", "user", "balance")
 
 
 class AccountSerializer(serializers.Serializer):
     id = serializers.IntegerField()
-    user = UserSerializer()
     balance = serializers.FloatField()
 
-
-class AccountModelSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Account
-        fields = "__all__"
+    def update(self, instance, validated_data):
+        instance.balance += Decimal(validated_data.get("balance"))
+        instance.save()
+        return instance
 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = "__all__"
+        fields = ["id", "title"]
         read_only_fields = ["users"]
 
     def create(self, validated_data):
@@ -54,35 +58,19 @@ class CategorySerializer(serializers.ModelSerializer):
             return category
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
-
-    # user = serializers.StringRelatedField(read_only=True)
-    operations_set = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    # balance = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
-    balance = UserAccountSerializer(many=False, read_only=True)
-    # balance = serializers.PrimaryKeyRelatedField(source="balance.balance", many=False, read_only=True)
-
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'password', 'email', 'operations_set', 'balance']
-
-
-class OperationsSerializer(serializers.ModelSerializer):
-
-    user = serializers.ReadOnlyField(source='user.username')
+class OperationSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(slug_field='title', read_only=True)
 
     class Meta:
         model = Operations
-        fields = '__all__'
+        fields = "__all__"
+        extra_kwargs = {"user": {"read_only": True},
+                        "rest_balance": {"read_only": True}}
 
-    # def perform_create(self, serializer):
-    #     serializer.save(user=self.request.user)
-
-
-# class BalanceSerializer(serializers.ModelSerializer):
-#
-#     user = serializers.ReadOnlyField(source='user.username')
-#
-#     class Meta:
-#         model = Account
-#         fields = "__all__"
+    def update(self, instance, validated_data):
+        organization = validated_data.get("organization")
+        if organization:
+            instance.organization = organization
+        instance.description = validated_data.pop("description")
+        instance.save()
+        return instance
